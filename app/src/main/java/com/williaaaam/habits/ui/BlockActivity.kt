@@ -22,8 +22,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -39,11 +41,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.williaaaam.habits.data.Habit
-import com.williaaaam.habits.domain.BlockReason
 import com.williaaaam.habits.domain.Format
+import com.williaaaam.habits.domain.HabitType
 import com.williaaaam.habits.habitsApp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -52,23 +54,17 @@ import kotlinx.coroutines.launch
 class BlockActivity : ComponentActivity() {
 
     private var blockedPackage by mutableStateOf("")
-    private var reason by mutableStateOf(BlockReason.NO_CREDIT)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        readIntent(intent)
+        blockedPackage = intent.getStringExtra(EXTRA_PACKAGE).orEmpty()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() = goHome()
         })
         setContent {
             HabitsTheme {
                 Surface(Modifier.fillMaxSize()) {
-                    BlockContent(
-                        packageName = blockedPackage,
-                        reason = reason,
-                        goHome = ::goHome,
-                        openHabits = ::openHabits,
-                    )
+                    BlockContent(packageName = blockedPackage, goHome = ::goHome, openApp = ::openApp)
                 }
             }
         }
@@ -76,14 +72,7 @@ class BlockActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        readIntent(intent)
-    }
-
-    private fun readIntent(intent: Intent) {
         blockedPackage = intent.getStringExtra(EXTRA_PACKAGE).orEmpty()
-        reason = intent.getStringExtra(EXTRA_REASON)
-            ?.let { runCatching { BlockReason.valueOf(it) }.getOrNull() }
-            ?: BlockReason.NO_CREDIT
     }
 
     private fun goHome() {
@@ -93,7 +82,7 @@ class BlockActivity : ComponentActivity() {
         finish()
     }
 
-    private fun openHabits() {
+    private fun openApp() {
         startActivity(
             Intent(this, MainActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
@@ -101,96 +90,107 @@ class BlockActivity : ComponentActivity() {
         finish()
     }
 
-    companion object {
-        private const val EXTRA_PACKAGE = "package"
-        private const val EXTRA_REASON = "reason"
-
-        fun intent(context: Context, packageName: String, reason: BlockReason): Intent =
-            Intent(context, BlockActivity::class.java)
-                .putExtra(EXTRA_PACKAGE, packageName)
-                .putExtra(EXTRA_REASON, reason.name)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-    }
-}
-
-@Composable
-private fun BlockContent(
-    packageName: String,
-    reason: BlockReason,
-    goHome: () -> Unit,
-    openHabits: () -> Unit,
-) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val app = context.habitsApp
-    val scope = rememberCoroutineScope()
-    val label = remember(packageName) { InstalledApps.label(context, packageName) }
-    val icon = remember(packageName) { InstalledApps.icon(context.packageManager, packageName) }
-    val habits by app.repository.habits.collectAsState(initial = emptyList())
-    val active by app.repository.activeSession.collectAsState(initial = null)
-
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            now = System.currentTimeMillis()
-            delay(1_000)
-        }
+    /** Once everything is done, hand the user back to the app they were trying to open. */
+    private fun openBlockedApp() {
+        packageManager.getLaunchIntentForPackage(blockedPackage)?.let { startActivity(it) }
+        finish()
     }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .safeDrawingPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Spacer(Modifier.height(32.dp))
-        if (icon != null) {
-            Image(icon, contentDescription = null, modifier = Modifier.size(72.dp))
-        } else {
-            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(72.dp))
-        }
-        Spacer(Modifier.height(16.dp))
-        Text("$label is locked", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(8.dp))
+    @Composable
+    private fun BlockContent(packageName: String, goHome: () -> Unit, openApp: () -> Unit) {
+        val context = LocalContext.current
+        val app = context.habitsApp
+        val scope = rememberCoroutineScope()
+        val label = remember(packageName) { InstalledApps.label(context, packageName) }
+        val icon = remember(packageName) { InstalledApps.icon(context.packageManager, packageName) }
+        val inputs by app.repository.todayInputs().collectAsState(initial = null)
 
-        val session = active
-        if (reason == BlockReason.HABIT_RUNNING && session != null) {
-            Text(
-                "You're doing ${session.habitName} (${Format.clock(now - session.startedAt)}). " +
-                    "Finish it first — your apps unlock when you stop the timer.",
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(24.dp))
-            Button(onClick = openHabits, modifier = Modifier.fillMaxWidth()) { Text("Back to my timer") }
-        } else {
-            Text(
-                "You're out of app time for today. Do a habit to earn some:",
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(24.dp))
-            if (habits.isEmpty()) {
-                Button(onClick = openHabits, modifier = Modifier.fillMaxWidth()) { Text("Add a habit") }
+        var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+        LaunchedEffect(Unit) {
+            while (true) {
+                now = System.currentTimeMillis()
+                delay(1_000)
             }
-            habits.forEach { habit: Habit ->
-                FilledTonalButton(
-                    onClick = {
-                        scope.launch {
-                            app.startHabit(habit)
-                            openHabits()
+        }
+        val state = inputs?.at(now)
+
+        Column(
+            Modifier
+                .fillMaxSize()
+                .safeDrawingPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Spacer(Modifier.height(32.dp))
+            if (icon != null) {
+                Image(icon, contentDescription = null, modifier = Modifier.size(72.dp))
+            } else {
+                Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(72.dp))
+            }
+            Spacer(Modifier.height(16.dp))
+
+            if (state != null && state.complete) {
+                Text("All done for today 🎉", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(24.dp))
+                Button(onClick = ::openBlockedApp, modifier = Modifier.fillMaxWidth()) { Text("Open $label") }
+            } else {
+                Text("$label is locked", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    if (state == null) "" else "${state.doneCount} of ${state.habits.size} habits done today. " +
+                        "Finish them all to unlock your apps until midnight.",
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(24.dp))
+                state?.habits?.forEach { status ->
+                    val habit = status.habit
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text((if (status.done) "✓ " else "") + habit.name, style = MaterialTheme.typography.titleSmall)
+                            if (habit.type == HabitType.TIMER) {
+                                Text(
+                                    "${Format.minutes(status.seconds)} of ${habit.goalMinutes} min",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                                LinearProgressIndicator(
+                                    progress = { status.fraction },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp, end = 12.dp),
+                                )
+                            }
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                ) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Start ${habit.name}")
-                        Text("${habit.habitMinutes} min → ${habit.rewardMinutes} min")
+                        when {
+                            habit.type == HabitType.CHECK -> Checkbox(
+                                checked = status.checked,
+                                onCheckedChange = { checked -> scope.launch { app.setChecked(habit, checked) } },
+                            )
+                            status.done -> Unit
+                            state?.active?.habitId == habit.id -> FilledTonalButton(onClick = openApp) { Text("Running") }
+                            state?.active == null -> FilledTonalButton(onClick = {
+                                scope.launch {
+                                    app.startTimer(habit, pomodoro = false)
+                                    openApp()
+                                }
+                            }) { Text("Start") }
+                        }
                     }
                 }
             }
+            Spacer(Modifier.height(24.dp))
+            OutlinedButton(onClick = goHome, modifier = Modifier.fillMaxWidth()) { Text("Go to home screen") }
         }
-        Spacer(Modifier.height(12.dp))
-        OutlinedButton(onClick = goHome, modifier = Modifier.fillMaxWidth()) { Text("Go to home screen") }
+    }
+
+    companion object {
+        private const val EXTRA_PACKAGE = "package"
+
+        fun intent(context: Context, packageName: String): Intent =
+            Intent(context, BlockActivity::class.java)
+                .putExtra(EXTRA_PACKAGE, packageName)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
     }
 }

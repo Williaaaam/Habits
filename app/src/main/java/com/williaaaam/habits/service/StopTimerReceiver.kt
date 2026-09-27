@@ -15,7 +15,7 @@ class StopTimerReceiver : BroadcastReceiver() {
         val app = context.habitsApp
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                app.stopHabit()
+                app.stopTimer()
             } finally {
                 pending.finish()
             }

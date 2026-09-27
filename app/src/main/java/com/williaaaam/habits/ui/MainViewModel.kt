@@ -4,36 +4,36 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.williaaaam.habits.data.BlockedApp
-import com.williaaaam.habits.data.DailyLedger
+import com.williaaaam.habits.data.DaySummary
 import com.williaaaam.habits.data.Habit
+import com.williaaaam.habits.data.HabitProgress
 import com.williaaaam.habits.data.HabitSession
+import com.williaaaam.habits.data.TodayState
 import com.williaaaam.habits.domain.Rules
 import com.williaaaam.habits.habitsApp
 import com.williaaaam.habits.usage.UsageStatsReader
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application.habitsApp
     private val repo = app.repository
 
-    private fun <T> kotlinx.coroutines.flow.Flow<T>.state(initial: T): StateFlow<T> =
+    private fun <T> Flow<T>.state(initial: T): StateFlow<T> =
         stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initial)
 
-    /** Ticks every second; drives the timer display and the midnight rollover. */
+    /** Ticks every second; drives the live timer. */
     val now: StateFlow<Long> = flow {
         while (true) {
             emit(System.currentTimeMillis())
@@ -41,15 +41,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }.state(System.currentTimeMillis())
 
-    private val today = now.map { Rules.dayKey(it) }.distinctUntilChanged()
+    /** Today's habits with the running timer's time counted live. */
+    val today: StateFlow<TodayState?> = combine(repo.todayInputs(), now) { inputs, time -> inputs.at(time) }.state(null)
 
     val habits: StateFlow<List<Habit>> = repo.habits.state(emptyList())
     val blockedApps: StateFlow<List<BlockedApp>> = repo.blockedApps.state(emptyList())
     val activeSession: StateFlow<HabitSession?> = repo.activeSession.state(null)
-    val ledger: StateFlow<DailyLedger?> = today.flatMapLatest { repo.ledger(it) }.state(null)
-    val finishedToday: StateFlow<List<HabitSession>> =
-        today.flatMapLatest { repo.finishedSessionsSince(Rules.startOfDay(System.currentTimeMillis())) }
-            .state(emptyList())
+    val summaries: StateFlow<List<DaySummary>> = repo.summaries.state(emptyList())
+
+    /** A year of per-habit progress, for heatmaps and streaks. */
+    val history: StateFlow<List<HabitProgress>> =
+        repo.progressSince(LocalDate.now().minusDays(366).toString()).state(emptyList())
 
     private val _installedApps = MutableStateFlow<List<InstalledApp>?>(null)
     val installedApps: StateFlow<List<InstalledApp>?> = _installedApps.asStateFlow()
@@ -75,10 +77,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun startHabit(habit: Habit) = viewModelScope.launch { app.startHabit(habit) }
-    fun stopHabit() = viewModelScope.launch { app.stopHabit() }
+    fun startTimer(habit: Habit, pomodoro: Boolean) = viewModelScope.launch { app.startTimer(habit, pomodoro) }
+    fun stopTimer() = viewModelScope.launch { app.stopTimer() }
+    fun setChecked(habit: Habit, checked: Boolean) = viewModelScope.launch { app.setChecked(habit, checked) }
     fun saveHabit(habit: Habit) = viewModelScope.launch { repo.saveHabit(habit) }
     fun deleteHabit(habit: Habit) = viewModelScope.launch { repo.deleteHabit(habit) }
-    fun setBlocked(app: InstalledApp, blocked: Boolean) =
-        viewModelScope.launch { repo.setBlocked(app.packageName, app.label, blocked) }
+    fun setBlocked(installed: InstalledApp, blocked: Boolean) =
+        viewModelScope.launch { repo.setBlocked(installed.packageName, installed.label, blocked) }
+
+    fun todayDate(): LocalDate = Rules.localDate(System.currentTimeMillis())
 }

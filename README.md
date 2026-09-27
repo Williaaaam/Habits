@@ -1,19 +1,21 @@
 # Habits
 
-An Android app that makes you earn your screen time. Pick the apps that eat your day (Instagram,
-TikTok, …) and the habits you want to build (reading, working out, …). Blocked apps stay locked
-until you've done a habit: e.g. **30 min of reading → 15 min of Instagram**.
+An Android app that puts your habits before your apps, modeled on
+[Habits First](https://habitsfirst.com/) for iPhone. Pick the apps that eat your day (Instagram,
+TikTok, …) and the habits you want to do every day. The apps stay **locked each day until all of
+today's habits are done**, then unlock until midnight.
 
 ## How it works
 
-- **Habits** have an exchange rate: do it for X minutes, earn Y minutes of app time. Partial time
-  counts proportionally (10 min of reading at 30→15 earns 5 min), rounded down to whole minutes.
-- To do a habit, tap **Start** in the app. While the timer runs, all blocked apps are locked.
-  Tap **Stop & collect** (or *Stop* in the notification) to bank the earned time.
-- Opening a blocked app uses up your credit second by second while it's on screen. When the credit
-  runs out, a lock screen appears with buttons to start a habit.
-- Credit is one pool shared by all blocked apps, and it **resets at midnight**.
-- There is no emergency unlock.
+- **Timed habits** have a daily goal (e.g. *Read 30 min*). Time adds up across sessions. Start a
+  plain timer or a **Pomodoro** timer (25 min focus / 5 min break, only focus time counts, with an
+  alert at each switch).
+- **Check-off habits** are done with one tap (e.g. *Make bed*).
+- Open a blocked app before you're done and a lock screen shows what's left, with buttons to start
+  a timer or check habits off. Once the last habit is done it offers to open the app.
+- **Progress** tab: a GitHub-style heatmap of your days, current and best streak, plus a heatmap
+  and streak per habit.
+- **Home-screen widget**: today's habits and whether your apps are locked.
 - The **Today** tab also shows how long you've spent in each blocked app today.
 
 ## Install
@@ -29,15 +31,21 @@ until you've done a habit: e.g. **30 min of reading → 15 min of Instagram**.
    - **Notifications** — for the timer notification.
    - **Battery: don't optimize** — otherwise some phones (Samsung, Xiaomi, OnePlus…) kill the
      blocker in the background. Also set *App info → Battery → Unrestricted* if your phone has it.
-4. **Blocked apps** tab → tick Instagram etc. **Habits** tab → add "Reading, 30 → 15".
+   - Pomodoro alerts use exact alarms. That's allowed automatically on most phones.
+4. **Apps** tab → tick Instagram etc. **Habits** tab → add "Read, 30 min" and so on.
+5. Optional: long-press your home screen → Widgets → Habits to add the widget.
 
 Updating: download the newer `habits.apk` and install it over the old one; your data is kept.
+(Exception: the first build used a "minutes for minutes" system; its data is reset once on upgrade.)
 
 ## Limitations
 
 - You can always switch the accessibility service off or uninstall the app. Android doesn't let a
   normal app prevent that — the friction is the point.
-- Habit timers are on the honor system: the app knows the timer is running, not that you're reading.
+- Habit timers and check-offs are on the honor system: the app knows the timer is running, not
+  that you're reading.
+- Not included (yet) from Habits First: auto-tracked habits (steps/workouts via Health Connect),
+  commitment locks, and schedule/location/Bluetooth-based blocks.
 
 ## Building
 

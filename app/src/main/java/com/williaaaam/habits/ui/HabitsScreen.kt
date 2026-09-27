@@ -16,7 +16,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -34,11 +36,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.williaaaam.habits.data.Habit
+import com.williaaaam.habits.domain.HabitType
 
 @Composable
 fun HabitsScreen(vm: MainViewModel) {
     val habits by vm.habits.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<Habit?>(null) }
+    var deleting by remember { mutableStateOf<Habit?>(null) }
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -47,22 +51,31 @@ fun HabitsScreen(vm: MainViewModel) {
         ) {
             item {
                 Text(
-                    "Each habit has an exchange rate: do it for X minutes, earn Y minutes of your blocked apps. " +
-                        "Partial time counts proportionally.",
+                    "Your blocked apps unlock each day once every habit here is done.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
             if (habits.isEmpty()) {
-                item { Text("No habits yet — tap “Add habit”.", style = MaterialTheme.typography.bodyLarge) }
+                item {
+                    Text(
+                        "No habits yet. Ideas: Read 30 min · Meditate 10 min · Study (Pomodoro) 50 min · Make bed · Drink water",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
             }
             items(habits, key = { it.id }) { habit ->
                 SectionCard(modifier = Modifier.clickable { editing = habit }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(habit.name, style = MaterialTheme.typography.titleMedium)
-                            Text("${habit.habitMinutes} min → ${habit.rewardMinutes} min of apps")
+                            Text(
+                                when (habit.type) {
+                                    HabitType.TIMER -> "${habit.goalMinutes} min a day (timer)"
+                                    HabitType.CHECK -> "Check off once a day"
+                                },
+                            )
                         }
-                        IconButton(onClick = { vm.deleteHabit(habit) }) {
+                        IconButton(onClick = { deleting = habit }) {
                             Icon(Icons.Default.Delete, contentDescription = "Delete ${habit.name}")
                         }
                     }
@@ -70,7 +83,7 @@ fun HabitsScreen(vm: MainViewModel) {
             }
         }
         ExtendedFloatingActionButton(
-            onClick = { editing = Habit(name = "", habitMinutes = 30, rewardMinutes = 15) },
+            onClick = { editing = Habit(name = "", type = HabitType.TIMER, goalMinutes = 30) },
             icon = { Icon(Icons.Default.Add, contentDescription = null) },
             text = { Text("Add habit") },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
@@ -87,48 +100,82 @@ fun HabitsScreen(vm: MainViewModel) {
             },
         )
     }
+
+    deleting?.let { habit ->
+        AlertDialog(
+            onDismissRequest = { deleting = null },
+            title = { Text("Delete ${habit.name}?") },
+            text = { Text("Its history and streak will be deleted too.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.deleteHabit(habit)
+                    deleting = null
+                }) { Text("Delete") }
+            },
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancel") } },
+        )
+    }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HabitDialog(initial: Habit, onDismiss: () -> Unit, onSave: (Habit) -> Unit) {
     var name by remember { mutableStateOf(initial.name) }
-    var habitMinutes by remember { mutableStateOf(initial.habitMinutes.toString()) }
-    var rewardMinutes by remember { mutableStateOf(initial.rewardMinutes.toString()) }
-    val h = habitMinutes.toIntOrNull()
-    val r = rewardMinutes.toIntOrNull()
-    val valid = name.isNotBlank() && h != null && h in 1..1440 && r != null && r in 1..1440
+    var type by remember { mutableStateOf(initial.type) }
+    var goal by remember { mutableStateOf(initial.goalMinutes.coerceAtLeast(1).toString()) }
+    val goalMinutes = goal.toIntOrNull()
+    val valid = name.isNotBlank() && (type == HabitType.CHECK || (goalMinutes != null && goalMinutes in 1..1440))
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (initial.id == 0L) "New habit" else "Edit habit") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = name, onValueChange = { name = it },
                     label = { Text("Habit (e.g. Reading)") }, singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = habitMinutes, onValueChange = { habitMinutes = it.filter(Char::isDigit) },
-                        label = { Text("Do (min)") }, singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = type == HabitType.TIMER,
+                        onClick = { type = HabitType.TIMER },
+                        label = { Text("Timed") },
                     )
-                    Text("→")
-                    OutlinedTextField(
-                        value = rewardMinutes, onValueChange = { rewardMinutes = it.filter(Char::isDigit) },
-                        label = { Text("Earn (min)") }, singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
+                    FilterChip(
+                        selected = type == HabitType.CHECK,
+                        onClick = { type = HabitType.CHECK },
+                        label = { Text("Check off") },
                     )
+                }
+                if (type == HabitType.TIMER) {
+                    OutlinedTextField(
+                        value = goal, onValueChange = { goal = it.filter(Char::isDigit) },
+                        label = { Text("Minutes per day") }, singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        "Time adds up across timer sessions. Use a normal or Pomodoro timer.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                } else {
+                    Text("Done with one tap on the Today screen.", style = MaterialTheme.typography.bodySmall)
                 }
             }
         },
         confirmButton = {
             TextButton(
                 enabled = valid,
-                onClick = { onSave(initial.copy(name = name.trim(), habitMinutes = h!!, rewardMinutes = r!!)) },
+                onClick = {
+                    onSave(
+                        initial.copy(
+                            name = name.trim(),
+                            type = type,
+                            goalMinutes = if (type == HabitType.TIMER) goalMinutes!! else 0,
+                        ),
+                    )
+                },
             ) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },

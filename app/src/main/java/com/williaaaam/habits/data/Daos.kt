@@ -10,8 +10,14 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface HabitDao {
-    @Query("SELECT * FROM habits ORDER BY name COLLATE NOCASE")
+    @Query("SELECT * FROM habits ORDER BY id")
     fun observeAll(): Flow<List<Habit>>
+
+    @Query("SELECT * FROM habits ORDER BY id")
+    suspend fun getAll(): List<Habit>
+
+    @Query("SELECT * FROM habits WHERE id = :id")
+    suspend fun get(id: Long): Habit?
 
     @Upsert
     suspend fun upsert(habit: Habit)
@@ -33,15 +39,34 @@ interface BlockedAppDao {
 }
 
 @Dao
+interface ProgressDao {
+    @Query("SELECT * FROM progress WHERE date = :date")
+    fun observeForDate(date: String): Flow<List<HabitProgress>>
+
+    @Query("SELECT * FROM progress WHERE date = :date")
+    suspend fun getForDate(date: String): List<HabitProgress>
+
+    @Query("SELECT * FROM progress WHERE habitId = :habitId AND date = :date")
+    suspend fun get(habitId: Long, date: String): HabitProgress?
+
+    /** ISO dates sort as strings, so this is "on or after [fromDate]". */
+    @Query("SELECT * FROM progress WHERE date >= :fromDate")
+    fun observeSince(fromDate: String): Flow<List<HabitProgress>>
+
+    @Upsert
+    suspend fun upsert(progress: HabitProgress)
+
+    @Query("DELETE FROM progress WHERE habitId = :habitId")
+    suspend fun deleteForHabit(habitId: Long)
+}
+
+@Dao
 interface SessionDao {
     @Query("SELECT * FROM sessions WHERE endedAt IS NULL LIMIT 1")
     fun observeActive(): Flow<HabitSession?>
 
     @Query("SELECT * FROM sessions WHERE endedAt IS NULL LIMIT 1")
     suspend fun getActive(): HabitSession?
-
-    @Query("SELECT * FROM sessions WHERE endedAt IS NOT NULL AND endedAt >= :since ORDER BY endedAt DESC")
-    fun observeFinishedSince(since: Long): Flow<List<HabitSession>>
 
     @Insert
     suspend fun insert(session: HabitSession): Long
@@ -51,19 +76,13 @@ interface SessionDao {
 }
 
 @Dao
-interface LedgerDao {
-    @Query("SELECT * FROM ledger WHERE date = :date")
-    fun observe(date: String): Flow<DailyLedger?>
+interface DaySummaryDao {
+    @Query("SELECT * FROM day_summary WHERE date >= :fromDate")
+    fun observeSince(fromDate: String): Flow<List<DaySummary>>
 
-    @Query("SELECT * FROM ledger WHERE date = :date")
-    suspend fun get(date: String): DailyLedger?
+    @Query("SELECT * FROM day_summary")
+    fun observeAll(): Flow<List<DaySummary>>
 
-    @Query("INSERT OR IGNORE INTO ledger (date, earnedSeconds, spentSeconds) VALUES (:date, 0, 0)")
-    suspend fun ensure(date: String)
-
-    @Query("UPDATE ledger SET earnedSeconds = earnedSeconds + :seconds WHERE date = :date")
-    suspend fun addEarned(date: String, seconds: Long)
-
-    @Query("UPDATE ledger SET spentSeconds = spentSeconds + :seconds WHERE date = :date")
-    suspend fun addSpent(date: String, seconds: Long)
+    @Upsert
+    suspend fun upsert(summary: DaySummary)
 }
