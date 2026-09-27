@@ -11,8 +11,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/widget_title"
-        android:textColor="#FF8A8A8A"
-        android:fontFamily="monospace"
+        android:textColor="#FF71767B"
+        android:fontFamily="sans-serif-medium"
         android:textSize="12sp"
         android:textStyle="bold" />
 
@@ -22,9 +22,9 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:text="@string/widget_loading"
-        android:textColor="#FFFFFFFF"
-        android:fontFamily="monospace"
-        android:textSize="17sp"
+        android:textColor="#FFE7E9EA"
+        android:fontFamily="sans-serif-medium"
+        android:textSize="20sp"
         android:textStyle="bold" />
 
     <TextView
@@ -33,7 +33,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:lineSpacingExtra="2dp"
-        android:textColor="#FFBDBDBD"
-        android:fontFamily="monospace"
+        android:textColor="#FF71767B"
+        android:fontFamily="sans-serif-medium"
         android:textSize="13sp" />
 </LinearLayout>

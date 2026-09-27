@@ -1,5 +1,5 @@
 <resources>
     <color name="background">#FF000000</color>
     <color name="launcher_background">#FF000000</color>
-    <color name="widget_border">#FF555555</color>
+    <color name="widget_border">#FF2F3336</color>
 </resources>

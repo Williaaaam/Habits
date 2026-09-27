@@ -12,13 +12,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -40,22 +43,32 @@ fun AppsScreen(vm: MainViewModel) {
     var query by remember { mutableStateOf("") }
 
     Column(Modifier.fillMaxSize()) {
-        Text(
-            "Checked apps can only be opened with earned time. ${blocked.size} blocked.",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 8.dp),
-        )
-        OutlinedTextField(
+        TextField(
             value = query,
             onValueChange = { query = it },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            placeholder = { Text("Search apps") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Palette.Secondary) },
+            placeholder = { Text("Search apps", color = Palette.Secondary) },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            shape = CircleShape,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Palette.RaisedHigh,
+                unfocusedContainerColor = Palette.RaisedHigh,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                cursorColor = Palette.Blue,
+            ),
+            modifier = Modifier.fillMaxWidth().padding(16.dp, 12.dp, 16.dp, 4.dp),
         )
+        Text(
+            "${blocked.size} locked until your habits are done",
+            style = MaterialTheme.typography.bodySmall,
+            color = Palette.Secondary,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+        Hairline()
         val apps = installed
         if (apps == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Palette.Blue) }
         } else {
             // Blocked apps first, then alphabetical.
             val shown = apps
@@ -68,17 +81,17 @@ fun AppsScreen(vm: MainViewModel) {
                         Modifier
                             .fillMaxWidth()
                             .clickable { vm.setBlocked(app, !checked) }
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         val icon = app.icon
                         if (icon != null) {
-                            Image(icon, contentDescription = null, modifier = Modifier.size(40.dp))
+                            Image(icon, contentDescription = null, modifier = Modifier.size(40.dp).clip(CircleShape))
                         } else {
                             Spacer(Modifier.size(40.dp))
                         }
-                        Text(app.label, Modifier.weight(1f).padding(horizontal = 16.dp))
-                        Checkbox(checked = checked, onCheckedChange = { vm.setBlocked(app, it) })
+                        Text(app.label, Modifier.weight(1f).padding(horizontal = 12.dp), style = MaterialTheme.typography.titleSmall)
+                        RoundCheck(checked) { vm.setBlocked(app, it) }
                     }
                 }
             }

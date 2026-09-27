@@ -37,8 +37,8 @@ class TodayWidget : AppWidgetProvider() {
             fun from(state: TodayState): Content {
                 val status = when {
                     state.habits.isEmpty() -> "No habits yet"
-                    state.complete -> "UNLOCKED"
-                    else -> "LOCKED · ${state.doneCount}/${state.habits.size}"
+                    state.complete -> "Unlocked"
+                    else -> "Locked · ${state.doneCount} of ${state.habits.size}"
                 }
                 val habits = state.habits.joinToString("\n") { s ->
                     val mark = if (s.done) "✓" else "○"

@@ -4,25 +4,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,80 +38,83 @@ fun TodayScreen(vm: MainViewModel, openSetup: () -> Unit, openHabits: () -> Unit
     val permissions by vm.permissions.collectAsStateWithLifecycle()
     val state = today ?: return
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         if (!permissions.accessibility) {
-            SectionCard(container = MaterialTheme.colorScheme.errorContainer) {
-                Text("Blocking is OFF.", style = MaterialTheme.typography.titleSmall)
-                TextButton(onClick = openSetup) { Text("Turn it on →") }
-            }
-        }
-
-        Column {
-            Text(
-                when {
-                    state.habits.isEmpty() -> "NO HABITS"
-                    state.complete -> "UNLOCKED"
-                    else -> "LOCKED"
-                },
-                style = MaterialTheme.typography.displayMedium,
-            )
-            Text(
-                when {
-                    state.habits.isEmpty() -> "Add a habit. Until then nothing is locked."
-                    state.complete -> "Done for today. Apps are open till midnight."
-                    else -> "${state.doneCount}/${state.habits.size} done. Finish them all to unlock."
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (state.habits.isNotEmpty()) {
-                LinearProgressIndicator(
-                    progress = { state.doneCount.toFloat() / state.habits.size },
-                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                )
-            } else {
-                TextButton(onClick = openHabits) { Text("Add a habit →") }
-            }
-        }
-
-        state.active?.let { session -> ActiveTimerCard(session, now, onStop = { vm.stopTimer() }) }
-
-        if (state.habits.isNotEmpty()) {
-            SectionCard(title = "Today") {
-                state.habits.forEachIndexed { index, status ->
-                    if (index > 0) HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                    HabitRow(
-                        status = status,
-                        timerRunning = state.active != null,
-                        runningThis = state.active?.habitId == status.habit.id,
-                        onStart = { pomodoro -> vm.startTimer(status.habit, pomodoro) },
-                        onCheck = { vm.setChecked(status.habit, it) },
-                    )
+            Section {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Blocking is off", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Turn on the accessibility service so apps can be locked.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Palette.Secondary,
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    OutlinedPill("Turn on", onClick = openSetup, small = true)
                 }
             }
         }
+
+        Section {
+            Text(
+                when {
+                    state.habits.isEmpty() -> "No habits yet"
+                    state.complete -> "Unlocked"
+                    else -> "Locked"
+                },
+                style = MaterialTheme.typography.displaySmall,
+            )
+            Text(
+                when {
+                    state.habits.isEmpty() -> "Add the habits you want to do every day."
+                    state.complete -> "You did everything. Apps are open until midnight."
+                    else -> "${state.doneCount} of ${state.habits.size} done · finish them all to unlock"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = Palette.Secondary,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            if (state.habits.isNotEmpty()) {
+                ThinProgress(state.doneCount.toFloat() / state.habits.size, Modifier.padding(top = 14.dp, bottom = 4.dp))
+            } else {
+                PillButton("Add a habit", onClick = openHabits, modifier = Modifier.padding(top = 14.dp))
+            }
+        }
+
+        state.active?.let { session -> ActiveTimer(session, now, onStop = { vm.stopTimer() }) }
+
+        state.habits.forEach { status ->
+            HabitRow(
+                status = status,
+                timerRunning = state.active != null,
+                runningThis = state.active?.habitId == status.habit.id,
+                onStart = { pomodoro -> vm.startTimer(status.habit, pomodoro) },
+                onCheck = { vm.setChecked(status.habit, it) },
+            )
+            Hairline()
+        }
+        Spacer(Modifier.height(24.dp))
     }
 }
 
 @Composable
-private fun ActiveTimerCard(session: HabitSession, now: Long, onStop: () -> Unit) {
+private fun ActiveTimer(session: HabitSession, now: Long, onStop: () -> Unit) {
     val elapsed = now - session.startedAt
-    SectionCard(container = MaterialTheme.colorScheme.surfaceContainerHigh) {
+    Section {
+        val label: String
+        val clock: String
         if (session.pomodoro) {
             val phase = Pomodoro.phase(elapsed)
-            Text(
-                "${session.habitName} · ${if (phase.focus) "focus" else "break"} #${phase.round}",
-                style = MaterialTheme.typography.titleSmall,
-            )
-            Text(Format.clock(phase.msLeft), style = MaterialTheme.typography.displayLarge)
+            label = "${session.habitName} · ${if (phase.focus) "Focus" else "Break"} · round ${phase.round}"
+            clock = Format.clock(phase.msLeft)
         } else {
-            Text(session.habitName, style = MaterialTheme.typography.titleSmall)
-            Text(Format.clock(elapsed), style = MaterialTheme.typography.displayLarge)
+            label = session.habitName
+            clock = Format.clock(elapsed)
         }
-        Button(onClick = onStop, modifier = Modifier.padding(top = 8.dp).fillMaxWidth()) { Text("STOP") }
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = Palette.Secondary)
+        Text(clock, style = MaterialTheme.typography.displayLarge)
+        PillButton("Stop", onClick = onStop, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
     }
 }
 
@@ -131,24 +127,29 @@ private fun HabitRow(
     onCheck: (Boolean) -> Unit,
 ) {
     val habit = status.habit
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        HabitAvatar(habit.name, status.done)
         Column(Modifier.weight(1f)) {
-            Text((if (status.done) "✓ " else "") + habit.name, style = MaterialTheme.typography.titleSmall)
-            if (habit.type == HabitType.TIMER) {
-                Text(
-                    "${Format.minutes(status.seconds)} / ${habit.goalMinutes}m" + if (runningThis) " · running" else "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                LinearProgressIndicator(
-                    progress = { status.fraction },
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp, end = 12.dp),
-                )
+            Text(habit.name, style = MaterialTheme.typography.titleSmall)
+            Text(
+                when {
+                    habit.type == HabitType.CHECK -> if (status.checked) "Done" else "Check off"
+                    else -> "${Format.minutes(status.seconds)} of ${habit.goalMinutes}m" + if (runningThis) " · running" else ""
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = Palette.Secondary,
+            )
+            if (habit.type == HabitType.TIMER && !status.done) {
+                ThinProgress(status.fraction, Modifier.padding(top = 8.dp))
             }
         }
         when {
-            habit.type == HabitType.CHECK -> Checkbox(checked = status.checked, onCheckedChange = onCheck)
-            status.done -> Icon(Icons.Default.Check, contentDescription = "Done")
+            habit.type == HabitType.CHECK -> RoundCheck(status.checked, onCheck)
+            status.done -> RoundCheck(true, null)
             !timerRunning -> StartButton(onStart)
         }
     }
@@ -158,14 +159,11 @@ private fun HabitRow(
 private fun StartButton(onStart: (pomodoro: Boolean) -> Unit) {
     var menu by remember { mutableStateOf(false) }
     Box {
-        OutlinedButton(onClick = { menu = true }) {
-            Icon(Icons.Default.PlayArrow, contentDescription = null)
-            Text("GO")
-        }
-        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+        OutlinedPill("Start", onClick = { menu = true }, small = true)
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = Palette.Raised) {
             DropdownMenuItem(text = { Text("Timer") }, onClick = { menu = false; onStart(false) })
             DropdownMenuItem(
-                text = { Text("Pomodoro ${Pomodoro.FOCUS_MINUTES}/${Pomodoro.BREAK_MINUTES}") },
+                text = { Text("Pomodoro · ${Pomodoro.FOCUS_MINUTES}/${Pomodoro.BREAK_MINUTES}") },
                 onClick = { menu = false; onStart(true) },
             )
         }

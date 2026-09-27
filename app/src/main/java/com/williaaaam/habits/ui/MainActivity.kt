@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -20,12 +21,16 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 
 private enum class Tab(val label: String, val icon: ImageVector) {
@@ -52,16 +57,33 @@ class MainActivity : ComponentActivity() {
                 var tab by rememberSaveable { mutableStateOf(firstTab) }
                 OnResume { vm.refresh() }
                 Scaffold(
-                    topBar = { TopAppBar(title = { Text((if (tab == Tab.Today) "Habits" else tab.label).uppercase(), style = MaterialTheme.typography.headlineMedium) }) },
+                    containerColor = Palette.Black,
+                    topBar = {
+                        Column {
+                            CenterAlignedTopAppBar(
+                                title = { Text(if (tab == Tab.Today) "Habits" else tab.label, style = MaterialTheme.typography.titleLarge) },
+                                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Palette.Black),
+                            )
+                            Hairline()
+                        }
+                    },
                     bottomBar = {
-                        NavigationBar {
-                            Tab.entries.forEach { t ->
-                                NavigationBarItem(
-                                    selected = tab == t,
-                                    onClick = { tab = t },
-                                    icon = { Icon(t.icon, contentDescription = null) },
-                                    label = { Text(t.label) },
-                                )
+                        Column {
+                            Hairline()
+                            NavigationBar(containerColor = Palette.Black, tonalElevation = 0.dp) {
+                                Tab.entries.forEach { t ->
+                                    NavigationBarItem(
+                                        selected = tab == t,
+                                        onClick = { tab = t },
+                                        icon = { Icon(t.icon, contentDescription = t.label) },
+                                        alwaysShowLabel = false,
+                                        colors = NavigationBarItemDefaults.colors(
+                                            selectedIconColor = Palette.Text,
+                                            unselectedIconColor = Palette.Secondary,
+                                            indicatorColor = Color.Transparent,
+                                        ),
+                                    )
+                                }
                             }
                         }
                     },

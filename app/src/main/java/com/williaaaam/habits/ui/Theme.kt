@@ -12,89 +12,93 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.williaaaam.habits.R
 
-/** Grimy stencil letters for headings. */
-val Punk = FontFamily(Font(R.font.rubik_dirt))
-
-/** Typewriter-ish mono for everything else. */
-val Mono = FontFamily(
-    Font(R.font.space_mono_regular, FontWeight.Normal),
-    Font(R.font.space_mono_bold, FontWeight.Bold),
-)
-
-private val Grey900 = Color(0xFF111111)
-private val Grey850 = Color(0xFF161616)
-private val Grey800 = Color(0xFF1C1C1C)
-private val Grey750 = Color(0xFF222222)
-private val Grey700 = Color(0xFF2A2A2A)
-private val Grey600 = Color(0xFF333333)
-private val Grey500 = Color(0xFF555555)
-private val Grey400 = Color(0xFF8A8A8A)
-private val Grey200 = Color(0xFFBDBDBD)
-private val Grey100 = Color(0xFFE0E0E0)
-
-private val Colors = darkColorScheme(
-    primary = Color.White,
-    onPrimary = Color.Black,
-    primaryContainer = Grey800,
-    onPrimaryContainer = Color.White,
-    secondary = Grey400,
-    onSecondary = Color.Black,
-    secondaryContainer = Grey700,
-    onSecondaryContainer = Color.White,
-    tertiary = Grey200,
-    onTertiary = Color.Black,
-    background = Color.Black,
-    onBackground = Color.White,
-    surface = Color.Black,
-    onSurface = Color.White,
-    surfaceVariant = Grey800,
-    onSurfaceVariant = Grey200,
-    surfaceContainerLowest = Color.Black,
-    surfaceContainerLow = Grey900,
-    surfaceContainer = Grey850,
-    surfaceContainerHigh = Grey800,
-    surfaceContainerHighest = Grey750,
-    outline = Grey500,
-    outlineVariant = Grey600,
-    error = Grey100,
-    onError = Color.Black,
-    errorContainer = Grey700,
-    onErrorContainer = Color.White,
-)
-
-private val Type = Typography().let { t ->
-    fun TextStyle.punk() = copy(fontFamily = Punk, fontWeight = FontWeight.Normal)
-    fun TextStyle.mono() = copy(fontFamily = Mono)
-    Typography(
-        displayLarge = t.displayLarge.punk(),
-        displayMedium = t.displayMedium.punk(),
-        displaySmall = t.displaySmall.punk(),
-        headlineLarge = t.headlineLarge.punk(),
-        headlineMedium = t.headlineMedium.punk(),
-        headlineSmall = t.headlineSmall.punk(),
-        titleLarge = t.titleLarge.punk(),
-        titleMedium = t.titleMedium.punk(),
-        titleSmall = t.titleSmall.mono().copy(fontWeight = FontWeight.Bold),
-        bodyLarge = t.bodyLarge.mono(),
-        bodyMedium = t.bodyMedium.mono(),
-        bodySmall = t.bodySmall.mono(),
-        labelLarge = t.labelLarge.mono().copy(fontWeight = FontWeight.Bold),
-        labelMedium = t.labelMedium.mono(),
-        labelSmall = t.labelSmall.mono(),
-    )
+/** X-style dark palette: pure black, soft white, grey secondary text, hairline dividers, one blue. */
+object Palette {
+    val Black = Color(0xFF000000)
+    val Text = Color(0xFFE7E9EA)
+    val Secondary = Color(0xFF71767B)
+    val Divider = Color(0xFF2F3336)
+    val Raised = Color(0xFF16181C)
+    val RaisedHigh = Color(0xFF202327)
+    val PillOutline = Color(0xFF536471)
+    val Blue = Color(0xFF1D9BF0)
+    val Red = Color(0xFFF4212E)
 }
 
-private val Corners = Shapes(
-    extraSmall = RoundedCornerShape(2.dp),
-    small = RoundedCornerShape(2.dp),
-    medium = RoundedCornerShape(4.dp),
-    large = RoundedCornerShape(4.dp),
-    extraLarge = RoundedCornerShape(6.dp),
+val Inter = FontFamily(
+    Font(R.font.inter_regular, FontWeight.Normal),
+    Font(R.font.inter_medium, FontWeight.Medium),
+    Font(R.font.inter_bold, FontWeight.Bold),
+    Font(R.font.inter_extrabold, FontWeight.ExtraBold),
 )
 
-/** Black, white and grey only — on purpose, in light and dark mode alike. */
+private val Colors = darkColorScheme(
+    primary = Palette.Blue,
+    onPrimary = Color.White,
+    primaryContainer = Palette.Blue,
+    onPrimaryContainer = Color.White,
+    secondary = Palette.Secondary,
+    onSecondary = Palette.Black,
+    secondaryContainer = Palette.Divider,
+    onSecondaryContainer = Palette.Text,
+    tertiary = Palette.Blue,
+    onTertiary = Color.White,
+    background = Palette.Black,
+    onBackground = Palette.Text,
+    surface = Palette.Black,
+    onSurface = Palette.Text,
+    surfaceVariant = Palette.Raised,
+    onSurfaceVariant = Palette.Secondary,
+    surfaceContainerLowest = Palette.Black,
+    surfaceContainerLow = Palette.Black,
+    surfaceContainer = Palette.Raised,
+    surfaceContainerHigh = Palette.Raised,
+    surfaceContainerHighest = Palette.RaisedHigh,
+    outline = Palette.Divider,
+    outlineVariant = Palette.Divider,
+    error = Palette.Red,
+    onError = Color.White,
+    errorContainer = Palette.Raised,
+    onErrorContainer = Palette.Text,
+)
+
+private fun inter(size: Int, weight: FontWeight, line: Int = size + 5, tracking: Double = 0.0) = TextStyle(
+    fontFamily = Inter,
+    fontWeight = weight,
+    fontSize = size.sp,
+    lineHeight = line.sp,
+    letterSpacing = tracking.sp,
+)
+
+private val Type = Typography(
+    displayLarge = inter(56, FontWeight.ExtraBold, 60, -1.5),
+    displayMedium = inter(44, FontWeight.ExtraBold, 48, -1.0),
+    displaySmall = inter(34, FontWeight.ExtraBold, 40, -0.5),
+    headlineLarge = inter(30, FontWeight.ExtraBold, 36),
+    headlineMedium = inter(24, FontWeight.ExtraBold, 30),
+    headlineSmall = inter(20, FontWeight.Bold, 26),
+    titleLarge = inter(20, FontWeight.ExtraBold, 24),
+    titleMedium = inter(17, FontWeight.Bold, 22),
+    titleSmall = inter(15, FontWeight.Bold, 20),
+    bodyLarge = inter(17, FontWeight.Normal, 24),
+    bodyMedium = inter(15, FontWeight.Normal, 20),
+    bodySmall = inter(13, FontWeight.Normal, 16),
+    labelLarge = inter(15, FontWeight.Bold, 20),
+    labelMedium = inter(13, FontWeight.Medium, 16),
+    labelSmall = inter(11, FontWeight.Medium, 14),
+)
+
+private val Corners = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(16.dp),
+    extraLarge = RoundedCornerShape(16.dp),
+)
+
 @Composable
 fun HabitsTheme(content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = Colors, typography = Type, shapes = Corners, content = content)

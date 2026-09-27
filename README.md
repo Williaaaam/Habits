@@ -37,5 +37,4 @@ Kotlin + Jetpack Compose + Room. CI (`.github/workflows/build.yml`) runs the uni
 the APK on every push; locally, `./gradlew assembleRelease` with an Android SDK. The APK is signed
 with `app/debug.keystore` so each build installs as an update of the last.
 
-Fonts: [Rubik Dirt](https://fonts.google.com/specimen/Rubik+Dirt) and
-[Space Mono](https://fonts.google.com/specimen/Space+Mono), both under the SIL Open Font License.
+Font: [Inter](https://rsms.me/inter/), under the SIL Open Font License.
