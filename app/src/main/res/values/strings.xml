@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Habits</string>
+    <string name="accessibility_label">Habits app blocker</string>
+    <string name="accessibility_description">Lets Habits see which app is open so it can lock the apps you chose until you have earned time for them by doing your habits. Habits does not read what is on your screen.</string>
+</resources>

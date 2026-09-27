@@ -1,0 +1,50 @@
+name: Build APK
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests and APK
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon testDebugUnitTest assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk habits.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: habits-apk
+          path: habits.apk
+
+      # Keeps a "latest" release with habits.apk attached, so the APK can be
+      # downloaded straight from a phone browser without a GitHub login or a zip.
+      - name: Publish "latest" release
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --cleanup-tag --yes || true
+          gh release create latest habits.apk \
+            --target "$GITHUB_SHA" \
+            --title "Habits (latest build)" \
+            --notes "Built from \`${GITHUB_SHA::7}\` on \`${GITHUB_REF_NAME}\`. Download habits.apk on your phone and open it to install."
