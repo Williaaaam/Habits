@@ -56,30 +56,30 @@ fun AppsScreen(vm: MainViewModel) {
         val apps = installed
         if (apps == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            return@Column
-        }
-        // Blocked apps first, then alphabetical.
-        val shown = apps
-            .filter { query.isBlank() || it.label.contains(query, ignoreCase = true) }
-            .sortedBy { it.packageName !in blockedSet }
-        LazyColumn(Modifier.fillMaxSize()) {
-            items(shown, key = { it.packageName }) { app ->
-                val checked = app.packageName in blockedSet
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable { vm.setBlocked(app, !checked) }
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    val icon = app.icon
-                    if (icon != null) {
-                        Image(icon, contentDescription = null, modifier = Modifier.size(40.dp))
-                    } else {
-                        Spacer(Modifier.size(40.dp))
+        } else {
+            // Blocked apps first, then alphabetical.
+            val shown = apps
+                .filter { query.isBlank() || it.label.contains(query, ignoreCase = true) }
+                .sortedBy { it.packageName !in blockedSet }
+            LazyColumn(Modifier.fillMaxSize()) {
+                items(shown, key = { it.packageName }) { app ->
+                    val checked = app.packageName in blockedSet
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { vm.setBlocked(app, !checked) }
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        val icon = app.icon
+                        if (icon != null) {
+                            Image(icon, contentDescription = null, modifier = Modifier.size(40.dp))
+                        } else {
+                            Spacer(Modifier.size(40.dp))
+                        }
+                        Text(app.label, Modifier.weight(1f).padding(horizontal = 16.dp))
+                        Checkbox(checked = checked, onCheckedChange = { vm.setBlocked(app, it) })
                     }
-                    Text(app.label, Modifier.weight(1f).padding(horizontal = 16.dp))
-                    Checkbox(checked = checked, onCheckedChange = { vm.setBlocked(app, it) })
                 }
             }
         }

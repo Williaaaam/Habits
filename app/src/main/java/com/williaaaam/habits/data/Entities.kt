@@ -40,6 +40,6 @@ data class DailyLedger(
     @PrimaryKey val date: String,
     val earnedSeconds: Long = 0,
     val spentSeconds: Long = 0,
-) {
-    val balanceSeconds: Long get() = (earnedSeconds - spentSeconds).coerceAtLeast(0)
-}
+)
+
+val DailyLedger.balanceSeconds: Long get() = (earnedSeconds - spentSeconds).coerceAtLeast(0)

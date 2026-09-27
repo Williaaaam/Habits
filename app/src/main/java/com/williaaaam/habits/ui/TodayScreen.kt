@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.williaaaam.habits.data.balanceSeconds
 import com.williaaaam.habits.domain.Format
 import com.williaaaam.habits.domain.Rules
 
