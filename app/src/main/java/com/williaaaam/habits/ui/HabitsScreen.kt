@@ -51,14 +51,14 @@ fun HabitsScreen(vm: MainViewModel) {
         ) {
             item {
                 Text(
-                    "Your blocked apps unlock each day once every habit here is done.",
+                    "Do all of these every day or your apps stay locked.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
             if (habits.isEmpty()) {
                 item {
                     Text(
-                        "No habits yet. Ideas: Read 30 min · Meditate 10 min · Study (Pomodoro) 50 min · Make bed · Drink water",
+                        "Nothing yet. Try: Read 30m · Study 50m · Make bed.",
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
@@ -67,11 +67,11 @@ fun HabitsScreen(vm: MainViewModel) {
                 SectionCard(modifier = Modifier.clickable { editing = habit }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(habit.name, style = MaterialTheme.typography.titleMedium)
+                            Text(habit.name, style = MaterialTheme.typography.titleSmall)
                             Text(
                                 when (habit.type) {
-                                    HabitType.TIMER -> "${habit.goalMinutes} min a day (timer)"
-                                    HabitType.CHECK -> "Check off once a day"
+                                    HabitType.TIMER -> "${habit.goalMinutes} min / day"
+                                    HabitType.CHECK -> "check off"
                                 },
                             )
                         }
@@ -105,7 +105,7 @@ fun HabitsScreen(vm: MainViewModel) {
         AlertDialog(
             onDismissRequest = { deleting = null },
             title = { Text("Delete ${habit.name}?") },
-            text = { Text("Its history and streak will be deleted too.") },
+            text = { Text("Today's progress on it goes too.") },
             confirmButton = {
                 TextButton(onClick = {
                     vm.deleteHabit(habit)
@@ -128,7 +128,7 @@ private fun HabitDialog(initial: Habit, onDismiss: () -> Unit, onSave: (Habit) -
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (initial.id == 0L) "New habit" else "Edit habit") },
+        title = { Text(if (initial.id == 0L) "NEW HABIT" else "EDIT HABIT") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -155,12 +155,6 @@ private fun HabitDialog(initial: Habit, onDismiss: () -> Unit, onSave: (Habit) -
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Text(
-                        "Time adds up across timer sessions. Use a normal or Pomodoro timer.",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                } else {
-                    Text("Done with one tap on the Today screen.", style = MaterialTheme.typography.bodySmall)
                 }
             }
         },

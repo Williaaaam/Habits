@@ -5,13 +5,10 @@ import com.williaaaam.habits.domain.Format
 import com.williaaaam.habits.domain.HabitType
 import com.williaaaam.habits.domain.Pomodoro
 import com.williaaaam.habits.domain.Rules
-import com.williaaaam.habits.usage.FgEvent
-import com.williaaaam.habits.usage.UsageMath
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -51,16 +48,6 @@ class RulesTest {
         assertEquals(afterMidnight, Rules.startOfDay(afterMidnight + 5 * min, zone))
     }
 
-    @Test fun streaks() {
-        val today = LocalDate.of(2026, 9, 27)
-        val days = setOf(today.minusDays(1), today.minusDays(2), today.minusDays(3), today.minusDays(10), today.minusDays(11))
-        assertEquals(3, Rules.currentStreak(days, today)) // today not done yet: count from yesterday
-        assertEquals(4, Rules.currentStreak(days + today, today))
-        assertEquals(0, Rules.currentStreak(setOf(today.minusDays(2)), today))
-        assertEquals(3, Rules.bestStreak(days))
-        assertEquals(0, Rules.bestStreak(emptySet()))
-    }
-
     @Test fun pomodoroCountsOnlyFocusTime() {
         assertEquals(10 * min, Pomodoro.countedMs(10 * min, pomodoro = false))
         assertEquals(10 * min, Pomodoro.countedMs(10 * min, pomodoro = true))
@@ -84,17 +71,5 @@ class RulesTest {
         assertEquals("1h 05m", Format.minutes(65 * 60))
         assertEquals("4:07", Format.clock(247_000))
         assertEquals("1:02:03", Format.clock(3_723_000))
-    }
-
-    @Test fun usageTotals() {
-        val events = listOf(
-            FgEvent("insta", false, 50),          // was already open at window start: ignored
-            FgEvent("insta", true, 100),
-            FgEvent("insta", false, 400),
-            FgEvent("tiktok", true, 500),
-            FgEvent("tiktok", false, 700),
-            FgEvent("insta", true, 900),          // still open
-        )
-        assertEquals(mapOf("insta" to 300L + 100L, "tiktok" to 200L), UsageMath.foregroundTotals(events, 1000))
     }
 }

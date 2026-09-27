@@ -48,32 +48,6 @@ object Rules {
 
     fun startOfDay(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): Long =
         localDate(epochMillis, zone).atStartOfDay(zone).toInstant().toEpochMilli()
-
-    /** Days in a row ending today (or yesterday, if today isn't done yet). */
-    fun currentStreak(doneDays: Set<LocalDate>, today: LocalDate): Int {
-        var day = if (today in doneDays) today else today.minusDays(1)
-        var streak = 0
-        while (day in doneDays) {
-            streak++
-            day = day.minusDays(1)
-        }
-        return streak
-    }
-
-    fun bestStreak(doneDays: Set<LocalDate>): Int {
-        var best = 0
-        for (day in doneDays) {
-            if (day.minusDays(1) in doneDays) continue // not the start of a run
-            var length = 0
-            var d = day
-            while (d in doneDays) {
-                length++
-                d = d.plusDays(1)
-            }
-            best = maxOf(best, length)
-        }
-        return best
-    }
 }
 
 /** Classic Pomodoro: 25 min focus, 5 min break, repeat. Only focus time counts toward a habit. */

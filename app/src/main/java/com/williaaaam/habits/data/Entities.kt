@@ -42,13 +42,3 @@ data class HabitSession(
     val endedAt: Long? = null,
     val countedSeconds: Long = 0,
 )
-
-/** How many habits were done on a day, frozen as of that day (for the overall heatmap/streak). */
-@Entity(tableName = "day_summary")
-data class DaySummary(
-    @PrimaryKey val date: String,
-    val done: Int,
-    val total: Int,
-)
-
-val DaySummary.complete: Boolean get() = total > 0 && done >= total

@@ -14,7 +14,7 @@
         android:pathData="M56,38 C62,34 70,34 78,38 L78,74 C70,70 62,70 56,74 Z" />
     <!-- check mark -->
     <path
-        android:strokeColor="#FF2E7D5B"
+        android:strokeColor="#FF000000"
         android:strokeWidth="4"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"

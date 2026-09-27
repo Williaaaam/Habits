@@ -12,16 +12,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,30 +30,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.williaaaam.habits.data.HabitSession
 import com.williaaaam.habits.data.HabitStatus
-import com.williaaaam.habits.data.complete
 import com.williaaaam.habits.domain.Format
 import com.williaaaam.habits.domain.HabitType
 import com.williaaaam.habits.domain.Pomodoro
-import com.williaaaam.habits.domain.Rules
 
 @Composable
-fun TodayScreen(vm: MainViewModel, openSetup: () -> Unit, openHabits: () -> Unit, openApps: () -> Unit) {
+fun TodayScreen(vm: MainViewModel, openSetup: () -> Unit, openHabits: () -> Unit) {
     val now by vm.now.collectAsStateWithLifecycle()
     val today by vm.today.collectAsStateWithLifecycle()
-    val blocked by vm.blockedApps.collectAsStateWithLifecycle()
-    val usage by vm.usage.collectAsStateWithLifecycle()
-    val summaries by vm.summaries.collectAsStateWithLifecycle()
     val permissions by vm.permissions.collectAsStateWithLifecycle()
     val state = today ?: return
-
-    val streak = remember(summaries) {
-        Rules.currentStreak(summaries.filter { it.complete }.mapTo(HashSet()) { java.time.LocalDate.parse(it.date) }, vm.todayDate())
-    }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -62,57 +51,43 @@ fun TodayScreen(vm: MainViewModel, openSetup: () -> Unit, openHabits: () -> Unit
     ) {
         if (!permissions.accessibility) {
             SectionCard(container = MaterialTheme.colorScheme.errorContainer) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Warning, contentDescription = null)
-                    Text(
-                        "Blocking is off. Turn on the Habits accessibility service.",
-                        Modifier.weight(1f).padding(horizontal = 12.dp),
-                    )
-                    TextButton(onClick = openSetup) { Text("Fix") }
-                }
+                Text("Blocking is OFF.", style = MaterialTheme.typography.titleSmall)
+                TextButton(onClick = openSetup) { Text("Turn it on →") }
             }
         }
 
-        // Status: locked or unlocked for the day.
-        val unlocked = state.complete
-        SectionCard(
-            container = if (unlocked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-        ) {
+        Column {
             Text(
                 when {
-                    state.habits.isEmpty() -> "No habits yet"
-                    unlocked -> "🔓 Apps unlocked"
-                    else -> "🔒 Apps locked"
+                    state.habits.isEmpty() -> "NO HABITS"
+                    state.complete -> "UNLOCKED"
+                    else -> "LOCKED"
                 },
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.displayMedium,
             )
             Text(
                 when {
-                    state.habits.isEmpty() -> "Add the habits you want to do every day. Until then your blocked apps stay open."
-                    unlocked -> "All habits done — enjoy your apps until midnight."
-                    else -> "${state.doneCount} of ${state.habits.size} habits done. Finish them all to unlock ${blocked.size} app${if (blocked.size == 1) "" else "s"}."
+                    state.habits.isEmpty() -> "Add a habit. Until then nothing is locked."
+                    state.complete -> "Done for today. Apps are open till midnight."
+                    else -> "${state.doneCount}/${state.habits.size} done. Finish them all to unlock."
                 },
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (state.habits.isNotEmpty()) {
                 LinearProgressIndicator(
                     progress = { state.doneCount.toFloat() / state.habits.size },
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 )
-            }
-            if (streak > 0) {
-                Text("🔥 $streak-day streak", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp))
-            }
-            if (state.habits.isEmpty()) {
-                TextButton(onClick = openHabits) { Text("Add a habit") }
+            } else {
+                TextButton(onClick = openHabits) { Text("Add a habit →") }
             }
         }
 
         state.active?.let { session -> ActiveTimerCard(session, now, onStop = { vm.stopTimer() }) }
 
         if (state.habits.isNotEmpty()) {
-            SectionCard(title = "Today's habits") {
+            SectionCard(title = "Today") {
                 state.habits.forEachIndexed { index, status ->
                     if (index > 0) HorizontalDivider(Modifier.padding(vertical = 8.dp))
                     HabitRow(
@@ -125,56 +100,25 @@ fun TodayScreen(vm: MainViewModel, openSetup: () -> Unit, openHabits: () -> Unit
                 }
             }
         }
-
-        SectionCard(title = "Screen time today") {
-            when {
-                blocked.isEmpty() -> {
-                    Text("No blocked apps yet.")
-                    TextButton(onClick = openApps) { Text("Choose apps to block") }
-                }
-                !permissions.usageAccess -> {
-                    Text("Allow usage access to see how long you've spent in each app.")
-                    TextButton(onClick = openSetup) { Text("Set up") }
-                }
-                else -> {
-                    val total = blocked.sumOf { usage[it.packageName] ?: 0L }
-                    blocked.forEach { app ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-                            Text(app.label, Modifier.weight(1f))
-                            Text(Format.minutes((usage[app.packageName] ?: 0L) / 1000))
-                        }
-                    }
-                    HorizontalDivider(Modifier.padding(vertical = 6.dp))
-                    Row(Modifier.fillMaxWidth()) {
-                        Text("Total", Modifier.weight(1f), fontWeight = FontWeight.Bold)
-                        Text(Format.minutes(total / 1000), fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
     }
 }
 
 @Composable
 private fun ActiveTimerCard(session: HabitSession, now: Long, onStop: () -> Unit) {
     val elapsed = now - session.startedAt
-    SectionCard(container = MaterialTheme.colorScheme.secondaryContainer) {
+    SectionCard(container = MaterialTheme.colorScheme.surfaceContainerHigh) {
         if (session.pomodoro) {
             val phase = Pomodoro.phase(elapsed)
             Text(
-                "${session.habitName} · ${if (phase.focus) "Focus" else "Break"} · round ${phase.round}",
-                style = MaterialTheme.typography.titleMedium,
+                "${session.habitName} · ${if (phase.focus) "focus" else "break"} #${phase.round}",
+                style = MaterialTheme.typography.titleSmall,
             )
-            Text(Format.clock(phase.msLeft), style = MaterialTheme.typography.displayMedium)
-            Text(
-                "${Format.minutes(Pomodoro.countedMs(elapsed, true) / 1000)} of focus so far. Breaks don't count.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            Text(Format.clock(phase.msLeft), style = MaterialTheme.typography.displayLarge)
         } else {
-            Text("${session.habitName} in progress", style = MaterialTheme.typography.titleMedium)
-            Text(Format.clock(elapsed), style = MaterialTheme.typography.displayMedium)
+            Text(session.habitName, style = MaterialTheme.typography.titleSmall)
+            Text(Format.clock(elapsed), style = MaterialTheme.typography.displayLarge)
         }
-        Button(onClick = onStop, modifier = Modifier.padding(top = 12.dp).fillMaxWidth()) { Text("Stop & log time") }
+        Button(onClick = onStop, modifier = Modifier.padding(top = 8.dp).fillMaxWidth()) { Text("STOP") }
     }
 }
 
@@ -189,14 +133,12 @@ private fun HabitRow(
     val habit = status.habit
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(
-                (if (status.done) "✓ " else "") + habit.name,
-                style = MaterialTheme.typography.titleSmall,
-            )
+            Text((if (status.done) "✓ " else "") + habit.name, style = MaterialTheme.typography.titleSmall)
             if (habit.type == HabitType.TIMER) {
                 Text(
-                    "${Format.minutes(status.seconds)} of ${habit.goalMinutes} min" + if (runningThis) " · running" else "",
+                    "${Format.minutes(status.seconds)} / ${habit.goalMinutes}m" + if (runningThis) " · running" else "",
                     style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 LinearProgressIndicator(
                     progress = { status.fraction },
@@ -206,7 +148,7 @@ private fun HabitRow(
         }
         when {
             habit.type == HabitType.CHECK -> Checkbox(checked = status.checked, onCheckedChange = onCheck)
-            status.done -> Icon(Icons.Default.Check, contentDescription = "Done", tint = MaterialTheme.colorScheme.primary)
+            status.done -> Icon(Icons.Default.Check, contentDescription = "Done")
             !timerRunning -> StartButton(onStart)
         }
     }
@@ -216,14 +158,14 @@ private fun HabitRow(
 private fun StartButton(onStart: (pomodoro: Boolean) -> Unit) {
     var menu by remember { mutableStateOf(false) }
     Box {
-        FilledTonalButton(onClick = { menu = true }) {
+        OutlinedButton(onClick = { menu = true }) {
             Icon(Icons.Default.PlayArrow, contentDescription = null)
-            Text("Start")
+            Text("GO")
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
             DropdownMenuItem(text = { Text("Timer") }, onClick = { menu = false; onStart(false) })
             DropdownMenuItem(
-                text = { Text("Pomodoro (${Pomodoro.FOCUS_MINUTES}/${Pomodoro.BREAK_MINUTES})") },
+                text = { Text("Pomodoro ${Pomodoro.FOCUS_MINUTES}/${Pomodoro.BREAK_MINUTES}") },
                 onClick = { menu = false; onStart(true) },
             )
         }

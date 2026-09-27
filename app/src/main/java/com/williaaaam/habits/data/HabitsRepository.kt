@@ -21,15 +21,11 @@ class HabitsRepository(
     private val blockedAppDao = db.blockedAppDao()
     private val progressDao = db.progressDao()
     private val sessionDao = db.sessionDao()
-    private val summaryDao = db.daySummaryDao()
 
     val habits: Flow<List<Habit>> = habitDao.observeAll()
     val blockedApps: Flow<List<BlockedApp>> = blockedAppDao.observeAll()
     val blockedPackages: Flow<Set<String>> = blockedApps.map { apps -> apps.mapTo(HashSet()) { it.packageName } }
     val activeSession: Flow<HabitSession?> = sessionDao.observeActive()
-    val summaries: Flow<List<DaySummary>> = summaryDao.observeAll()
-
-    fun progressSince(fromDate: String): Flow<List<HabitProgress>> = progressDao.observeSince(fromDate)
 
     /** The current day key, re-checked every [pollMs] so midnight is noticed. */
     fun today(pollMs: Long = 30_000): Flow<String> = flow {
@@ -56,17 +52,11 @@ class HabitsRepository(
         return TodayState.build(date, habitDao.getAll(), progressDao.getForDate(date), sessionDao.getActive(), now).complete
     }
 
-    suspend fun saveHabit(habit: Habit) {
-        habitDao.upsert(habit)
-        refreshSummary()
-    }
+    suspend fun saveHabit(habit: Habit) = habitDao.upsert(habit)
 
-    suspend fun deleteHabit(habit: Habit) {
-        db.withTransaction {
-            habitDao.delete(habit)
-            progressDao.deleteForHabit(habit.id)
-        }
-        refreshSummary()
+    suspend fun deleteHabit(habit: Habit) = db.withTransaction {
+        habitDao.delete(habit)
+        progressDao.deleteForHabit(habit.id)
     }
 
     suspend fun setBlocked(packageName: String, label: String, blocked: Boolean) {
@@ -83,34 +73,21 @@ class HabitsRepository(
     }
 
     /** Stops the running timer and adds its (focus) time to today's progress for that habit. */
-    suspend fun stopTimer(): HabitSession? {
-        val finished = db.withTransaction {
-            val session = sessionDao.getActive() ?: return@withTransaction null
-            val end = clock()
-            val counted = Pomodoro.countedMs(end - session.startedAt, session.pomodoro) / 1000
-            val done = session.copy(endedAt = end, countedSeconds = counted)
-            sessionDao.update(done)
-            val date = Rules.dayKey(end)
-            val p = progressDao.get(session.habitId, date) ?: HabitProgress(session.habitId, date)
-            progressDao.upsert(p.copy(seconds = p.seconds + counted))
-            done
-        }
-        refreshSummary()
-        return finished
+    suspend fun stopTimer(): HabitSession? = db.withTransaction {
+        val session = sessionDao.getActive() ?: return@withTransaction null
+        val end = clock()
+        val counted = Pomodoro.countedMs(end - session.startedAt, session.pomodoro) / 1000
+        val done = session.copy(endedAt = end, countedSeconds = counted)
+        sessionDao.update(done)
+        val date = Rules.dayKey(end)
+        val p = progressDao.get(session.habitId, date) ?: HabitProgress(session.habitId, date)
+        progressDao.upsert(p.copy(seconds = p.seconds + counted))
+        done
     }
 
     suspend fun setChecked(habit: Habit, checked: Boolean) {
         val date = Rules.dayKey(clock())
         val p = progressDao.get(habit.id, date) ?: HabitProgress(habit.id, date)
         progressDao.upsert(p.copy(checked = checked))
-        refreshSummary()
-    }
-
-    /** Records today's done/total so history isn't rewritten when habits change later. */
-    private suspend fun refreshSummary() {
-        val now = clock()
-        val date = Rules.dayKey(now)
-        val state = TodayState.build(date, habitDao.getAll(), progressDao.getForDate(date), null, now)
-        summaryDao.upsert(DaySummary(date, state.doneCount, state.habits.size))
     }
 }

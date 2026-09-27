@@ -36,14 +36,14 @@ class TodayWidget : AppWidgetProvider() {
         companion object {
             fun from(state: TodayState): Content {
                 val status = when {
-                    state.habits.isEmpty() -> "Add a habit to start"
-                    state.complete -> "🔓 All done — apps unlocked"
-                    else -> "🔒 ${state.doneCount} of ${state.habits.size} done"
+                    state.habits.isEmpty() -> "No habits yet"
+                    state.complete -> "UNLOCKED"
+                    else -> "LOCKED · ${state.doneCount}/${state.habits.size}"
                 }
                 val habits = state.habits.joinToString("\n") { s ->
                     val mark = if (s.done) "✓" else "○"
                     val detail = if (s.habit.type == HabitType.TIMER) {
-                        " · ${minOf(s.seconds / 60, s.habit.goalMinutes.toLong())}/${s.habit.goalMinutes} min"
+                        " ${minOf(s.seconds / 60, s.habit.goalMinutes.toLong())}/${s.habit.goalMinutes}m"
                     } else {
                         ""
                     }

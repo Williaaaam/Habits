@@ -11,18 +11,15 @@ import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.content.ContextCompat
 import com.williaaaam.habits.service.GateAccessibilityService
-import com.williaaaam.habits.usage.UsageStatsReader
 
 data class PermissionState(
     val accessibility: Boolean,
-    val usageAccess: Boolean,
     val notifications: Boolean,
     val batteryUnrestricted: Boolean,
 ) {
     companion object {
         fun read(context: Context) = PermissionState(
             accessibility = GateAccessibilityService.isEnabled(context),
-            usageAccess = UsageStatsReader.hasPermission(context),
             notifications = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
                 ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
                 PackageManager.PERMISSION_GRANTED,
@@ -34,8 +31,6 @@ data class PermissionState(
 
 object SettingsIntents {
     fun accessibility() = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-
-    fun usageAccess() = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
 
     fun appInfo(context: Context) =
         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))

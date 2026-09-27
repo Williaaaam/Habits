@@ -23,7 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -132,15 +131,15 @@ class BlockActivity : ComponentActivity() {
             Spacer(Modifier.height(16.dp))
 
             if (state != null && state.complete) {
-                Text("All done for today 🎉", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+                Text("UNLOCKED", style = MaterialTheme.typography.displayMedium, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(24.dp))
                 Button(onClick = ::openBlockedApp, modifier = Modifier.fillMaxWidth()) { Text("Open $label") }
             } else {
-                Text("$label is locked", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+                Text("LOCKED", style = MaterialTheme.typography.displayLarge, textAlign = TextAlign.Center)
+                Text(label, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    if (state == null) "" else "${state.doneCount} of ${state.habits.size} habits done today. " +
-                        "Finish them all to unlock your apps until midnight.",
+                    if (state == null) "" else "${state.doneCount}/${state.habits.size} habits done. Do the work, then scroll.",
                     textAlign = TextAlign.Center,
                 )
                 Spacer(Modifier.height(24.dp))
@@ -169,19 +168,19 @@ class BlockActivity : ComponentActivity() {
                                 onCheckedChange = { checked -> scope.launch { app.setChecked(habit, checked) } },
                             )
                             status.done -> Unit
-                            state?.active?.habitId == habit.id -> FilledTonalButton(onClick = openApp) { Text("Running") }
-                            state?.active == null -> FilledTonalButton(onClick = {
+                            state?.active?.habitId == habit.id -> OutlinedButton(onClick = openApp) { Text("Running") }
+                            state?.active == null -> OutlinedButton(onClick = {
                                 scope.launch {
                                     app.startTimer(habit, pomodoro = false)
                                     openApp()
                                 }
-                            }) { Text("Start") }
+                            }) { Text("GO") }
                         }
                     }
                 }
             }
             Spacer(Modifier.height(24.dp))
-            OutlinedButton(onClick = goHome, modifier = Modifier.fillMaxWidth()) { Text("Go to home screen") }
+            OutlinedButton(onClick = goHome, modifier = Modifier.fillMaxWidth()) { Text("Get out") }
         }
     }
 

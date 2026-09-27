@@ -2,7 +2,7 @@
     <string name="app_name">Habits</string>
     <string name="accessibility_label">Habits app blocker</string>
     <string name="accessibility_description">Lets Habits see which app is open so it can keep the apps you chose locked until today\'s habits are done. Habits does not read what is on your screen.</string>
-    <string name="widget_title">TODAY\'S HABITS</string>
+    <string name="widget_title">HABITS</string>
     <string name="widget_loading">Loading…</string>
     <string name="widget_description">Today\'s habits and whether your apps are unlocked</string>
 </resources>

@@ -40,43 +40,33 @@ fun SetupScreen(vm: MainViewModel) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            "Habits needs a few permissions to watch and lock apps. Everything stays on your phone.",
+            "Three switches and you're set. Nothing leaves your phone.",
             style = MaterialTheme.typography.bodyMedium,
         )
 
         Step(
-            title = "1. Accessibility service (required)",
+            title = "1. Blocker",
             done = permissions.accessibility,
-            body = "This is how Habits sees which app you open and locks blocked apps. " +
-                "Open Accessibility → Installed apps / Downloaded apps → Habits → turn it on.",
-            action = "Open accessibility settings",
+            body = "Accessibility → Installed/Downloaded apps → Habits → ON. This is what locks apps.",
+            action = "Open accessibility",
             onAction = { context.launchSafely(SettingsIntents.accessibility()) },
         ) {
             if (!permissions.accessibility && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 Text(
-                    "Greyed out or “Restricted setting”? Android blocks this for apps installed from an APK " +
-                        "until you allow it: open App info → ⋮ (top right) → “Allow restricted settings”, then try again.",
+                    "Greyed out? App info → ⋮ → Allow restricted settings, then try again.",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 OutlinedButton(onClick = { context.launchSafely(SettingsIntents.appInfo(context)) }) {
-                    Text("Open App info")
+                    Text("Open app info")
                 }
             }
         }
 
         Step(
-            title = "2. Usage access",
-            done = permissions.usageAccess,
-            body = "Lets Habits show today's screen time for your blocked apps.",
-            action = "Open usage access settings",
-            onAction = { context.launchSafely(SettingsIntents.usageAccess()) },
-        )
-
-        Step(
-            title = "3. Notifications",
+            title = "2. Notifications",
             done = permissions.notifications,
-            body = "Shows the running habit timer with a Stop button.",
-            action = "Allow notifications",
+            body = "For the timer and Pomodoro alerts.",
+            action = "Allow",
             onAction = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -85,10 +75,9 @@ fun SetupScreen(vm: MainViewModel) {
         )
 
         Step(
-            title = "4. Battery (recommended)",
+            title = "3. Battery",
             done = permissions.batteryUnrestricted,
-            body = "Stops your phone from putting Habits to sleep, which would stop the blocking. " +
-                "On Samsung/Xiaomi/OnePlus also set the app's battery usage to “Unrestricted”.",
+            body = "Stops your phone from killing the blocker in the background.",
             action = "Don't optimize",
             onAction = { context.launchSafely(SettingsIntents.batteryOptimization(context)) },
         )
@@ -109,9 +98,9 @@ private fun Step(
             Icon(
                 if (done) Icons.Default.CheckCircle else Icons.Default.Warning,
                 contentDescription = if (done) "Done" else "Not done",
-                tint = if (done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                tint = if (done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
             )
-            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 12.dp))
+            Text(title.uppercase(), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 12.dp))
         }
         Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(body, style = MaterialTheme.typography.bodyMedium)

@@ -4,14 +4,10 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.williaaaam.habits.data.BlockedApp
-import com.williaaaam.habits.data.DaySummary
 import com.williaaaam.habits.data.Habit
-import com.williaaaam.habits.data.HabitProgress
 import com.williaaaam.habits.data.HabitSession
 import com.williaaaam.habits.data.TodayState
-import com.williaaaam.habits.domain.Rules
 import com.williaaaam.habits.habitsApp
-import com.williaaaam.habits.usage.UsageStatsReader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -24,7 +20,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.LocalDate
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application.habitsApp
@@ -47,17 +42,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val habits: StateFlow<List<Habit>> = repo.habits.state(emptyList())
     val blockedApps: StateFlow<List<BlockedApp>> = repo.blockedApps.state(emptyList())
     val activeSession: StateFlow<HabitSession?> = repo.activeSession.state(null)
-    val summaries: StateFlow<List<DaySummary>> = repo.summaries.state(emptyList())
-
-    /** A year of per-habit progress, for heatmaps and streaks. */
-    val history: StateFlow<List<HabitProgress>> =
-        repo.progressSince(LocalDate.now().minusDays(366).toString()).state(emptyList())
 
     private val _installedApps = MutableStateFlow<List<InstalledApp>?>(null)
     val installedApps: StateFlow<List<InstalledApp>?> = _installedApps.asStateFlow()
-
-    private val _usage = MutableStateFlow<Map<String, Long>>(emptyMap())
-    val usage: StateFlow<Map<String, Long>> = _usage.asStateFlow()
 
     private val _permissions = MutableStateFlow(PermissionState.read(application))
     val permissions: StateFlow<PermissionState> = _permissions.asStateFlow()
@@ -65,9 +52,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /** Called whenever the app comes back to the foreground (e.g. from Settings). */
     fun refresh() {
         _permissions.value = PermissionState.read(app)
-        viewModelScope.launch {
-            _usage.value = withContext(Dispatchers.IO) { UsageStatsReader.todayForegroundMillis(app) }
-        }
     }
 
     fun loadInstalledApps() {
@@ -84,6 +68,4 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteHabit(habit: Habit) = viewModelScope.launch { repo.deleteHabit(habit) }
     fun setBlocked(installed: InstalledApp, blocked: Boolean) =
         viewModelScope.launch { repo.setBlocked(installed.packageName, installed.label, blocked) }
-
-    fun todayDate(): LocalDate = Rules.localDate(System.currentTimeMillis())
 }

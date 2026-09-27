@@ -49,10 +49,6 @@ interface ProgressDao {
     @Query("SELECT * FROM progress WHERE habitId = :habitId AND date = :date")
     suspend fun get(habitId: Long, date: String): HabitProgress?
 
-    /** ISO dates sort as strings, so this is "on or after [fromDate]". */
-    @Query("SELECT * FROM progress WHERE date >= :fromDate")
-    fun observeSince(fromDate: String): Flow<List<HabitProgress>>
-
     @Upsert
     suspend fun upsert(progress: HabitProgress)
 
@@ -73,16 +69,4 @@ interface SessionDao {
 
     @Update
     suspend fun update(session: HabitSession)
-}
-
-@Dao
-interface DaySummaryDao {
-    @Query("SELECT * FROM day_summary WHERE date >= :fromDate")
-    fun observeSince(fromDate: String): Flow<List<DaySummary>>
-
-    @Query("SELECT * FROM day_summary")
-    fun observeAll(): Flow<List<DaySummary>>
-
-    @Upsert
-    suspend fun upsert(summary: DaySummary)
 }
